@@ -379,6 +379,8 @@ class SimpleWebSocketServer {
 
 // 创建 HTTP 服务器
 const server = http.createServer((req, res) => {
+  console.log(`HTTP ${req.method} ${req.url} from ${req.headers['x-forwarded-for'] || req.socket.remoteAddress}`);
+  
   // 设置 CORS 头
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
@@ -395,8 +397,17 @@ const server = http.createServer((req, res) => {
     res.end(JSON.stringify({ 
       status: 'ok', 
       message: '辣堡对战服务器运行中',
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      websocket: true,
+      port: process.env.PORT || 3001
     }));
+    return;
+  }
+  
+  // WebSocket upgrade endpoint
+  if (req.url === '/socket' || req.headers.upgrade === 'websocket') {
+    res.writeHead(426, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: 'Upgrade required', message: 'Use WebSocket protocol' }));
     return;
   }
   

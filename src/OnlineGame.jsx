@@ -41,8 +41,11 @@ function OnlineGame() {
 
   // 连接 WebSocket
   useEffect(() => {
+    let reconnectTimeout
+    
     const connect = () => {
       try {
+        console.log('正在连接服务器:', SERVER_URL)
         const ws = new WebSocket(SERVER_URL)
         
         ws.onopen = () => {
@@ -52,32 +55,43 @@ function OnlineGame() {
         }
         
         ws.onmessage = (event) => {
-          const data = JSON.parse(event.data)
-          handleMessage(data)
+          try {
+            const data = JSON.parse(event.data)
+            handleMessage(data)
+          } catch (e) {
+            console.error('解析消息失败:', e)
+          }
         }
         
-        ws.onclose = () => {
-          console.log('WebSocket 连接关闭')
+        ws.onclose = (event) => {
+          console.log('WebSocket 连接关闭:', event.code, event.reason)
           setConnected(false)
-          setError('连接已断开')
+          if (!event.wasClean) {
+            setError('连接已断开，正在重连...')
+            // 3秒后重连
+            reconnectTimeout = setTimeout(connect, 3000)
+          }
         }
         
         ws.onerror = (err) => {
           console.error('WebSocket 错误:', err)
-          setError('连接错误')
+          setError('连接服务器失败')
           setConnected(false)
         }
         
         wsRef.current = ws
       } catch (e) {
         console.error('连接失败:', e)
-        setError('无法连接到服务器')
+        setError('无法连接到服务器: ' + e.message)
       }
     }
     
     connect()
     
     return () => {
+      if (reconnectTimeout) {
+        clearTimeout(reconnectTimeout)
+      }
       if (wsRef.current) {
         wsRef.current.close()
       }
