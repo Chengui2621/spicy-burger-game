@@ -8,8 +8,8 @@ const ROAD_LEFT = 2
 const ROAD_RIGHT = 17
 const GAME_DURATION = 60
 
-// 本地测试使用 localhost，部署后需要修改为实际地址
-const SERVER_URL = import.meta.env.VITE_SERVER_URL || 'ws://localhost:3001'
+// 生产环境使用 Railway 地址
+const SERVER_URL = 'wss://spicy-burger-game-production.up.railway.app'
 
 function OnlineGame() {
   const [connected, setConnected] = useState(false)
