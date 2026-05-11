@@ -15,7 +15,15 @@ class SimpleWebSocketServer {
   }
 
   handleUpgrade(request, socket, head) {
+    console.log('WebSocket upgrade request from:', request.headers['x-forwarded-for'] || socket.remoteAddress);
+    
     const key = request.headers['sec-websocket-key'];
+    if (!key) {
+      console.error('Missing sec-websocket-key');
+      socket.destroy();
+      return;
+    }
+    
     const acceptKey = this.generateAcceptKey(key);
     
     const response = [
@@ -28,6 +36,7 @@ class SimpleWebSocketServer {
     ].join('\r\n');
     
     socket.write(response);
+    console.log('WebSocket handshake successful');
     
     const clientId = this.generateId();
     this.clients.set(clientId, { socket, room: null });
@@ -40,12 +49,17 @@ class SimpleWebSocketServer {
     });
     
     socket.on('close', () => {
+      console.log('Client disconnected:', clientId);
       this.handleDisconnect(clientId);
     });
     
     socket.on('error', (err) => {
       console.error('Socket error:', err);
     });
+    
+    // 设置 keepalive 防止连接被代理关闭
+    socket.setKeepAlive(true, 30000);
+    socket.setTimeout(0);
 
     // 发送连接成功消息
     this.send(clientId, { type: 'connected', clientId });
